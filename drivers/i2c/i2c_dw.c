@@ -187,7 +187,9 @@ static inline void i2c_dw_transfer_complete(const struct device *dev)
 	write_intr_mask(DW_DISABLE_ALL_I2C_INT, reg_base);
 	value = read_clr_intr(reg_base);
 
-	k_sem_give(&dw->device_sync_sem);
+	if (IS_ENABLED(CONFIG_MULTITHREADING)) {
+		k_sem_give(&dw->device_sync_sem);
+	}
 }
 
 #ifdef CONFIG_I2C_TARGET
@@ -530,8 +532,10 @@ static int i2c_dw_transfer(const struct device *dev,
 			write_intr_mask(DW_ENABLE_TX_INT_I2C_SLAVE, reg_base);
 		}
 
-		/* Wait for transfer to be done */
-		k_sem_take(&dw->device_sync_sem, K_FOREVER);
+		if (IS_ENABLED(CONFIG_MULTITHREADING)) {
+			/* Wait for transfer to be done */
+			k_sem_take(&dw->device_sync_sem, K_FOREVER);
+		}
 
 		if (dw->state & I2C_DW_CMD_ERROR) {
 			ret = -EIO;
@@ -864,8 +868,10 @@ static int i2c_dw_initialize(const struct device *dev)
 	{
 		DEVICE_MMIO_MAP(dev, K_MEM_CACHE_NONE);
 	}
+	if (IS_ENABLED(CONFIG_MULTITHREADING)) {
+		k_sem_init(&dw->device_sync_sem, 0, K_SEM_MAX_LIMIT);
+	}
 
-	k_sem_init(&dw->device_sync_sem, 0, K_SEM_MAX_LIMIT);
 	uint32_t reg_base = get_regs(dev);
 
 	/* verify that we have a valid DesignWare register first */
