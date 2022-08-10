@@ -112,7 +112,9 @@ static int cy8c95xx_config(const struct device *dev,
 		return -ENOTSUP;
 	}
 
-	k_sem_take(drv_data->lock, K_FOREVER);
+	if (IS_ENABLED(CONFIG_MULTITHREADING)) {
+		k_sem_take(drv_data->lock, K_FOREVER);
+	}
 
 	if ((flags & GPIO_OUTPUT) != 0) {
 		pins->dir &= ~BIT(pin);
@@ -130,7 +132,10 @@ static int cy8c95xx_config(const struct device *dev,
 
 	rc = write_pin_state(cfg, pins);
 
-	k_sem_give(drv_data->lock);
+	if (IS_ENABLED(CONFIG_MULTITHREADING)) {
+		k_sem_give(drv_data->lock);
+	}
+
 	return rc;
 }
 
@@ -147,7 +152,9 @@ static int port_get(const struct device *dev,
 		return -EWOULDBLOCK;
 	}
 
-	k_sem_take(drv_data->lock, K_FOREVER);
+	if (IS_ENABLED(CONFIG_MULTITHREADING)) {
+		k_sem_take(drv_data->lock, K_FOREVER);
+	}
 
 	rc = i2c_reg_read_byte_dt(&cfg->i2c, CY8C95XX_REG_INPUT_DATA0 + cfg->port_num, &pin_data);
 
@@ -155,7 +162,10 @@ static int port_get(const struct device *dev,
 		*value = pin_data;
 	}
 
-	k_sem_give(drv_data->lock);
+	if (IS_ENABLED(CONFIG_MULTITHREADING)) {
+		k_sem_give(drv_data->lock);
+	}
+
 	return rc;
 }
 
@@ -174,14 +184,19 @@ static int port_write(const struct device *dev,
 		return -EWOULDBLOCK;
 	}
 
-	k_sem_take(drv_data->lock, K_FOREVER);
+	if (IS_ENABLED(CONFIG_MULTITHREADING)) {
+		k_sem_take(drv_data->lock, K_FOREVER);
+	}
 
 	int rc = i2c_reg_write_byte_dt(&cfg->i2c, CY8C95XX_REG_OUTPUT_DATA0 + cfg->port_num, out);
 
 	if (rc == 0) {
 		*outp = out;
 	}
-	k_sem_give(drv_data->lock);
+
+	if (IS_ENABLED(CONFIG_MULTITHREADING)) {
+		k_sem_give(drv_data->lock);
+	}
 
 	LOG_DBG("write msk %04x val %04x tog %04x => %04x: %d",
 		mask, value, toggle, out, rc);
@@ -235,7 +250,9 @@ static int cy8c95xx_init(const struct device *dev)
 	int rc;
 	uint8_t data = 0;
 
-	k_sem_take(drv_data->lock, K_FOREVER);
+	if (IS_ENABLED(CONFIG_MULTITHREADING)) {
+		k_sem_take(drv_data->lock, K_FOREVER);
+	}
 
 	if (!device_is_ready(cfg->i2c.bus)) {
 		LOG_ERR("%s is not ready", cfg->i2c.bus->name);
@@ -266,7 +283,10 @@ out:
 	} else {
 		LOG_DBG("%s init ok", dev->name);
 	}
-	k_sem_give(drv_data->lock);
+	if (IS_ENABLED(CONFIG_MULTITHREADING)) {
+		k_sem_give(drv_data->lock);
+	}
+
 	return rc;
 }
 
