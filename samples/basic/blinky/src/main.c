@@ -37,6 +37,10 @@ void main(void)
 		if (ret < 0) {
 			return;
 		}
-		k_msleep(SLEEP_TIME_MS);
+		if (IS_ENABLED(CONFIG_MULTITHREADING)) {
+			k_msleep(SLEEP_TIME_MS);
+		} else {
+			k_busy_wait(SLEEP_TIME_MS * 1000);
+		}
 	}
 }
